@@ -1,4 +1,157 @@
----
+flutter create coins_game_app
+cd coins_game_app
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_mobile_ads: ^3.1.0   # ho an'ny ads
+  shared_preferences: ^2.1.1   # hitahiry coins
+
+
+
+import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Coins Game',
+      home: CoinsGame(),
+    );
+  }
+}
+
+class CoinsGame extends StatefulWidget {
+  @override
+  _CoinsGameState createState() => _CoinsGameState();
+}
+
+class _CoinsGameState extends State<CoinsGame> {
+  int coins = 0;
+  RewardedAd? rewardedAd;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCoins();
+    _loadRewardedAd();
+  }
+
+  Future<void> _loadCoins() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      coins = prefs.getInt('coins') ?? 0;
+    });
+  }
+
+  Future<void> _saveCoins() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt('coins', coins);
+  }
+
+  void _loadRewardedAd() {
+    RewardedAd.load(
+      adUnitId: 'YOUR_REWARDED_AD_UNIT_ID', // ova amin'ny AdMob ID anao
+      request: AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          rewardedAd = ad;
+        },
+        onAdFailedToLoad: (error) {
+          print('RewardedAd failed to load: $error');
+        },
+      ),
+    );
+  }
+
+  void _showRewardedAd() {
+    if (rewardedAd == null) return;
+    rewardedAd!.show(
+      onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+        setState(() {
+          coins += 10; // valisoa rehefa mijery video
+        });
+        _saveCoins();
+      },
+    );
+    rewardedAd = null;
+    _loadRewardedAd(); // ento indray raha te hampiseho indray
+  }
+
+  void _tapButton() {
+    setState(() {
+      coins += 1;
+    });
+    _saveCoins();
+  }
+
+  void _buyCoins() {
+    // Eto ho an'ny In-App Purchase
+    setState(() {
+      coins += 100;
+    });
+    _saveCoins();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Coins Game')),
+      body: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue, Colors.orange],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Coins: $coins', style: TextStyle(fontSize: 24)),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _tapButton,
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                textStyle: TextStyle(fontSize: 32),
+              ),
+              child: Text('Tap Here!'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _showRewardedAd,
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                textStyle: TextStyle(fontSize: 18),
+              ),
+              child: Text('Watch Video → +10 Coins'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _buyCoins,
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                textStyle: TextStyle(fontSize: 18),
+              ),
+              child: Text('Buy 100 Coins'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}---
 title: Create your first app
 description: In this chapter, learn how to create a new Expo project.
 hasVideoLink: true
